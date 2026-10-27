@@ -21,7 +21,7 @@ export default {
   productName: PRODUCT_NAME,
   copyright: 'Copyright © Hangzhou DeepSeek Artificial Intelligence Co., Ltd.',
   directories: {
-    app: APP_ROOT,
+    // `app` is left at its default, which is this project directory.
     output: resolve(APP_ROOT, 'dist'),
     buildResources: resolve(APP_ROOT, 'resources'),
   },

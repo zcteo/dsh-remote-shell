@@ -52,15 +52,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck and test
-        run: |
-          pnpm exec tsc -b
-          pnpm test
+      - name: Test
+        run: pnpm test
 
+      # The packaging script runs with `--skip-build` and requires `lib/` to
+      # already hold the bundled application: `tsc -b` alone emits `lib/types`,
+      # while `lib/main.js` and `lib/preload.cjs` come from the bundler. This
+      # step is the one that produces them, and it typechecks on the way.
+      #
       # The tray icon and the application icons are committed, so a release
       # build never needs `sharp`. Running the renderer here would only prove
       # the committed files can be regenerated, which the unit suite does not
       # cover, so it stays a local maintenance step.
+      - name: Build
+        run: pnpm run build
+
       - name: Package ${{ matrix.target }}
         run: pnpm run ${{ matrix.script }} --skip-build
 

@@ -131,6 +131,12 @@ function runBuilder(target: ResolvedTarget, dirOnly: boolean): boolean {
     // One configuration serves every target, so the per-target output directory
     // is chosen here: artifacts for one platform never overwrite another's.
     `--config.directories.output=${output}`,
+    // Building from a tag makes electron-builder publish on its own, which then
+    // fails for want of a GitHub token. This script only builds; the workflow
+    // publishes the artifacts after both platforms are collected, so the
+    // implicit attempt is disabled explicitly rather than left to the default.
+    '--publish',
+    'never',
     ...(dirOnly ? ['--dir'] : []),
   ]
   const result = spawnSync(process.execPath, args, { cwd: APP_ROOT, stdio: 'inherit', env })
