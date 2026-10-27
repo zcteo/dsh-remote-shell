@@ -1,0 +1,9 @@
+# pnpm 11 reads dependency build policy only from this file, not from
+# `package.json`. Every package shipping a lifecycle script must be listed:
+# the default denies them all, so an unlisted one fails the install.
+allowBuilds:
+  # The bundler binary that vite and vitest load at runtime.
+  esbuild: true
+  # electron-builder's optional Squirrel.Windows helper. This application ships
+  # through NSIS, and the script only selects an already-bundled 7-Zip.
+  electron-winstaller: false
