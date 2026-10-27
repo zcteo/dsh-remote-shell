@@ -1,0 +1,127 @@
+name: Release
+
+# Tag pushes build the installers and attach them to a GitHub Release. Manual
+# dispatch runs the same matrix but stops at the upload step, so a packaging
+# regression can be checked without publishing anything.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: 'Upload as a draft release'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Package ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One failing platform must not cancel the other: a partial release is
+      # easier to reason about than a cancelled one.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: linux-x64
+            script: 'package:linux:x64'
+          - os: windows-2022
+            target: win-x64
+            script: 'package:win:x64'
+    steps:
+      - uses: actions/checkout@v4
+
+      # Electron 31+ requires Node 20; the packaging scripts use only built-in
+      # modules and the package manager declared in `packageManager`.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and test
+        run: |
+          pnpm exec tsc -b
+          pnpm test
+
+      # The tray icon and the application icons are committed, so a release
+      # build never needs `sharp`. Running the renderer here would only prove
+      # the committed files can be regenerated, which the unit suite does not
+      # cover, so it stays a local maintenance step.
+      - name: Package ${{ matrix.target }}
+        run: pnpm run ${{ matrix.script }} --skip-build
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          # Only finished artifacts are published: `linux-unpacked` and
+          # `win-unpacked` are intermediate trees, and `builder-debug.yml`
+          # describes the build rather than the product.
+          find "dist/${{ matrix.target }}" -maxdepth 1 -type f \
+            \( -name '*.deb' -o -name '*.AppImage' -o -name '*.exe' -o -name '*.zip' \) \
+            -exec cp -v {} release/ \;
+          ls -lh release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish release
+    needs: build
+    # A manual run stops after verifying the artifacts; only a tag publishes.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh artifacts
+
+      # The workflow owns the Release: `gh release create` is authoritative for
+      # the tag that triggered it, and re-running replaces the assets instead of
+      # failing on an existing release.
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          DRAFT: ${{ inputs.draft }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(artifacts/*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "::error::no release assets were produced"
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release $TAG exists; replacing its assets"
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            args=(--title "$TAG" --generate-notes)
+            if [ "${DRAFT:-false}" = "true" ]; then args+=(--draft); fi
+            gh release create "$TAG" "${assets[@]}" "${args[@]}"
+          fi

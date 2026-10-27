@@ -27,16 +27,18 @@
     "render:tray-icon": "tsx scripts/render-tray-icon.ts"
   },
   "devDependencies": {
-    "@electron/get": "^5.1.0",
     "@types/node": "^22.20.1",
     "electron": "^44.7.0",
     "electron-builder": "^26.17.0",
-    "extract-zip": "^2.0.1",
     "fflate": "^0.8.2",
     "sharp": "0.35.5",
     "tsdown": "^0.22.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
+  },
+  "packageManager": "pnpm@11.28.5",
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -16,6 +16,7 @@ The remote shell is a window onto a `dsh web` deployment that is already running
 - [Connect to a backend](#connect-to-a-backend)
 - [Develop](#develop)
 - [Package](#package)
+- [Publish a release](#publish-a-release)
 - [Verify a build](#verify-a-build)
 - [Known limitations](#known-limitations)
 
@@ -79,11 +80,30 @@ pnpm run package:linux:x64
 pnpm run package:win:x64
 ```
 
-Artifacts land in `dist/<target>/`. Linux produces an AppImage and a `.deb`; Windows produces an NSIS installer, or — on a host without Wine — the complete unpacked application archived as a zip, because electron-builder runs the generated installer under Wine to finish its resource pass off Windows. Both targets build from either host: the Electron distributions come from `@electron/get` and nothing here needs native compilation.
+Artifacts land in `dist/<target>/`. Linux produces an AppImage and a `.deb`. Windows produces two: an NSIS installer for people who want it installed, and a zip of the same payload for people who would rather unpack and run it — or who cannot run an installer at all. On a host without Wine the installer is skipped, because electron-builder needs Wine to finish its resource pass off Windows, and the zip is the only Windows artifact produced.
+
+Both targets build from either host: the Electron distributions come from `@electron/get` and nothing here needs native compilation.
 
 Packaging downloads the Electron distribution for the target (about 123 MB the first time). A restricted network can set `ELECTRON_MIRROR` to a mirror or `HTTPS_PROXY` to a proxy; the script sets `ELECTRON_GET_USE_PROXY` whenever a proxy variable is present.
 
 Add `--skip-build` to package the current `lib/` unchanged, or `--dir` to emit only the unpacked directory.
+
+Release artifacts are named `dsh-remote-shell-<version>-<os>-<arch>.<ext>`; the installed application still shows **DeepSeek Harness Remote**.
+
+<a id="publish-a-release"></a>
+
+## Publish a release
+
+`.github/workflows/release.yml` builds both platforms and attaches the installers to a GitHub Release. Push a `v*` tag:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The build matrix runs on `ubuntu-22.04` and `windows-2022`. Building Windows on a Windows runner is what produces a real NSIS `.exe`: packaging it from Linux falls back to a zip because electron-builder needs Wine to finish the installer's resource pass. A manual **Release → Run workflow** performs the same build and uploads the artifacts to the run without publishing a release.
+
+Nothing is signed, so the Windows installer triggers SmartScreen on first run. Removing that prompt requires a code-signing certificate; supply it through `signtoolOptions` in `electron-builder.config.mjs` (environment variables such as `WIN_CERT_FILE` and `WIN_CERT_PASSWORD`) and the workflow will sign automatically.
 
 <a id="verify-a-build"></a>
 

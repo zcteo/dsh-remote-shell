@@ -201,22 +201,53 @@ const output = resolve(APP_ROOT, 'dist', target.name)
 const options: PackageOptions = { dir: values.dir === true, keepOutput: values['keep-output'] === true }
 if (!options.keepOutput) rmSync(output, { recursive: true, force: true })
 
+/**
+ * Archive the unpacked Windows application beside the installer.
+ *
+ * A zip is the artifact for anyone who wants the application without an
+ * installation step: run it from the extracted folder, keep it on a share, or
+ * unpack it on a machine where running an installer is inconvenient. It is also
+ * the only Windows artifact a host without Wine can produce, because
+ * electron-builder needs Wine to finish the installer's resource pass.
+ * @param output - Target output directory holding `win-unpacked`.
+ * @param arch - Target architecture, part of the archive name.
+ * @returns The archive path and size, for the run report.
+ * @throws When the unpacked directory the archive must contain is absent.
+ */
+function archiveWindowsPayload(output: string, arch: string): string {
+  const unpacked = resolve(output, 'win-unpacked')
+  if (!existsSync(unpacked)) throw new Error(`package-target: ${unpacked} is missing`)
+  const version = (JSON.parse(readFileSync(join(APP_ROOT, 'package.json'), 'utf8')) as { version: string }).version
+  return archiveDirectory(unpacked, resolve(output, `dsh-remote-shell-${version}-win-${arch}.zip`))
+}
+
 // Windows installers need Wine off Windows. Without it, build the application
-// directory, archive it, and report exactly what was produced instead of
-// leaving the run failed with no distributable artifact.
+// directory and archive it instead of leaving the run failed with no
+// distributable artifact; with it, the installer is built and the archive is
+// produced from the payload beside it.
 if (target.platform === 'win' && !wineAvailable()) {
   console.warn('package-target: wine is unavailable, so the NSIS installer cannot be built here;')
   console.warn('package-target: producing the complete unpacked application and archiving it instead.')
   if (!runBuilder(target, true)) throw new Error('package-target: electron-builder --dir exited unsuccessfully')
-  const unpacked = resolve(output, 'win-unpacked')
-  if (!existsSync(unpacked)) throw new Error(`package-target: ${unpacked} is missing after --dir`)
-  const archive = archiveDirectory(unpacked, resolve(output, `DeepSeekHarnessRemote-${target.arch}.zip`))
-  console.log(`package-target: portable archive ${archive}`)
+  console.log(`package-target: portable archive ${archiveWindowsPayload(output, target.arch)}`)
   report(output, target)
   process.exit(0)
 }
 
 if (!runBuilder(target, options.dir)) {
   throw new Error('package-target: electron-builder exited unsuccessfully')
+}
+// `--dir` emits no installer, and a Linux target has no zip form to add.
+if (target.platform === 'win' && !options.dir) {
+  // The payload directory precedes every target electron-builder builds, so the
+  // archive is a read of the same bytes the installer was assembled from. A
+  // failure here is reported rather than thrown: the installer is the primary
+  // artifact, and losing it because the convenience archive could not be
+  // written would be the worse outcome.
+  try {
+    console.log(`package-target: portable archive ${archiveWindowsPayload(output, target.arch)}`)
+  } catch (error) {
+    console.warn(`package-target: the portable archive could not be written: ${error instanceof Error ? error.message : String(error)}`)
+  }
 }
 report(output, target)

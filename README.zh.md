@@ -16,6 +16,7 @@ description: "手动填写后端地址的 DeepSeek Harness Web 前端壳，适�
 - [连接后端](#connect-to-a-backend)
 - [开发](#develop)
 - [打包](#package)
+- [发布版本](#publish-a-release)
 - [验证构建](#verify-a-build)
 - [已知限制](#known-limitations)
 
@@ -79,11 +80,30 @@ pnpm run package:linux:x64
 pnpm run package:win:x64
 ```
 
-产物落在 `dist/<target>/`。Linux 产出 AppImage 与 `.deb`；Windows 产出 NSIS 安装包，若主机没有 Wine，则改为将完整解包应用打包成 zip —— 因为在非 Windows 主机上 electron-builder 需要用 Wine 运行生成的安装包以完成资源处理。两个目标都能在任一主机上构建：Electron 分发包来自 `@electron/get`，此处没有任何需要本机编译的内容。
+产物落在 `dist/<target>/`。Linux 产出 AppImage 与 `.deb`。Windows 产出两个：供需要安装的人使用的 NSIS 安装包，以及同一份载荷的 zip，供希望解压即用、或无法运行安装程序的人使用。在非 Windows 主机上 electron-builder 需要用 Wine 完成安装包的资源处理，因此无 Wine 时会跳过安装包，zip 成为唯一的 Windows 产物。
+
+两个目标都能在任一主机上构建：Electron 分发包来自 `@electron/get`，此处没有任何需要本机编译的内容。
 
 打包会下载目标平台的 Electron 分发包（首次约 123 MB）。受限网络可设置 `ELECTRON_MIRROR` 指向镜像，或设置 `HTTPS_PROXY` 指向代理；只要存在代理变量，脚本就会设置 `ELECTRON_GET_USE_PROXY`。
 
 加 `--skip-build` 可在不改动现有 `lib/` 的前提下打包，加 `--dir` 则只产出解包目录。
+
+发布产物命名为 `dsh-remote-shell-<version>-<os>-<arch>.<ext>`；安装后的应用仍显示 **DeepSeek Harness Remote**。
+
+<a id="publish-a-release"></a>
+
+## 发布版本
+
+`.github/workflows/release.yml` 会构建两个平台，并把安装包附加到 GitHub Release。推送 `v*` 标签即可：
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+构建矩阵运行在 `ubuntu-22.04` 与 `windows-2022`。在 Windows runner 上构建才能产出真正的 NSIS `.exe`：在 Linux 上打包 Windows 会退化为 zip，因为 electron-builder 需要 Wine 完成安装包的资源处理。手动触发 **Release → Run workflow** 会执行同样的构建并把产物上传到本次运行，但不发布 Release。
+
+产物未签名，因此 Windows 安装包首次运行会触发 SmartScreen。要消除该提示需要代码签名证书：在 `electron-builder.config.mjs` 的 `signtoolOptions` 中提供（环境变量如 `WIN_CERT_FILE` 与 `WIN_CERT_PASSWORD`），workflow 会自动签名。
 
 <a id="verify-a-build"></a>
 

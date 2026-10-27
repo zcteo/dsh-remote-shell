@@ -35,7 +35,11 @@ export default {
   // This application has no runtime dependencies to rebuild; its one external
   // module is Electron, which builder supplies.
   npmRebuild: false,
-  artifactName: '${productName}-${version}-${arch}.${ext}',
+  // Release assets are downloaded and pasted around, so the name avoids the
+  // space `productName` carries: a file called `DeepSeek Harness Remote-...`
+  // turns into a percent-encoded URL and a shell-quoting problem everywhere it
+  // is handled. The installed application keeps the display name.
+  artifactName: '${name}-${version}-${os}-${arch}.${ext}',
   linux: {
     target: [{ target: 'AppImage', arch: ['x64'] }, { target: 'deb', arch: ['x64'] }],
     category: 'Development',
