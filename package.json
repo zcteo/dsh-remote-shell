@@ -1,0 +1,43 @@
+{
+  "name": "dsh-remote-shell",
+  "description": "Electron shell that opens a DeepSeek Harness Web backend you enter yourself; it starts no Host and bundles no dsh runtime",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "Hangzhou DeepSeek Artificial Intelligence Co., Ltd."
+  },
+  "homepage": "https://github.com/deepseek-ai/deepseek-harness",
+  "desktopName": "dsh-remote.desktop",
+  "type": "module",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc -b && pnpm run bundle",
+    "bundle": "tsdown",
+    "dev": "tsx scripts/dev.ts",
+    "start": "tsx scripts/dev.ts --skip-build",
+    "test": "vitest run",
+    "smoke:page": "tsx scripts/run-smoke.ts page",
+    "smoke:connect": "tsx scripts/run-smoke.ts connect",
+    "smoke:chrome": "tsx scripts/run-smoke.ts chrome",
+    "package": "tsx scripts/package-target.ts",
+    "package:dir": "tsx scripts/package-target.ts --dir",
+    "package:linux:x64": "tsx scripts/package-target.ts linux-x64",
+    "package:linux:arm64": "tsx scripts/package-target.ts linux-arm64",
+    "package:win:x64": "tsx scripts/package-target.ts win-x64",
+    "render:tray-icon": "tsx scripts/render-tray-icon.ts"
+  },
+  "devDependencies": {
+    "@electron/get": "^5.1.0",
+    "@types/node": "^22.20.1",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.17.0",
+    "extract-zip": "^2.0.1",
+    "fflate": "^0.8.2",
+    "sharp": "0.35.5",
+    "tsdown": "^0.22.2",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
