@@ -99,6 +99,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      # `gh release` resolves the repository from the working directory's git
+      # remote, and this job otherwise only has downloaded files, so the
+      # checkout is what gives it a repository to publish against. The tag
+      # itself carries the commit the build ran from.
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
