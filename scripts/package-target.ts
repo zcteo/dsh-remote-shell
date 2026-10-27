@@ -30,13 +30,12 @@ interface Target {
   /** electron-builder `--<platform>` selector. */
   readonly platform: 'linux' | 'win'
   /** electron-builder `--<arch>` selector. */
-  readonly arch: 'x64' | 'arm64'
+  readonly arch: 'x64'
 }
 
 /** Every target this application can be packaged for, keyed by its directory name. */
 const TARGETS: Readonly<Record<string, Target>> = {
   'linux-x64': { platform: 'linux', arch: 'x64' },
-  'linux-arm64': { platform: 'linux', arch: 'arm64' },
   'win-x64': { platform: 'win', arch: 'x64' },
 }
 

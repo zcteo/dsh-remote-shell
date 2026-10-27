@@ -23,7 +23,6 @@
     "package": "tsx scripts/package-target.ts",
     "package:dir": "tsx scripts/package-target.ts --dir",
     "package:linux:x64": "tsx scripts/package-target.ts linux-x64",
-    "package:linux:arm64": "tsx scripts/package-target.ts linux-arm64",
     "package:win:x64": "tsx scripts/package-target.ts win-x64",
     "render:tray-icon": "tsx scripts/render-tray-icon.ts"
   },

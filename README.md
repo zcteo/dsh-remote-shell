@@ -106,4 +106,4 @@ E2E_URL='http://127.0.0.1:3080/?token=…' \
 - The shell keeps one window and one remembered address; it cannot open several backends at once.
 - The tray icon requires a desktop environment with a system tray; without one the window still works, but closing it hides the window with no icon to restore it.
 - Windows artifacts are unsigned, so SmartScreen warns on first run.
-- `linux-arm64` is configured but not part of the checked target set.
+- Only `linux-x64` and `win-x64` are configured.
